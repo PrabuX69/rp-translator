@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cut">
+<meta name="theme-color" content="#16131f">
+<title>RP Translator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#16131f; --card:#221d30; --card2:#2b2540; --line:#3a3352;
+    --text:#ece8f5; --muted:#9d95b5; --accent:#b48cff; --accent2:#ff8fb8;
+    --dialog:#ffd27a; --action:#9fd3ff; --danger:#ff6b6b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--text);
+    font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;
+    -webkit-font-smoothing:antialiased;letter-spacing:-.005em}
+  body{padding:env(safe-area-inset-top) 0 calc(76px + env(safe-area-inset-bottom))}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px}
+  header h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-.02em}
+  header h1 span{color:var(--accent)}
+  .status{font-size:12px;font-weight:500;color:var(--muted);display:flex;align-items:center;gap:6px;
+    background:var(--card);border:1px solid var(--line);padding:5px 10px;border-radius:999px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--danger)}
+  .dot.on{background:#5ee08a}
+  main{padding:8px 14px;max-width:720px;margin:0 auto}
+  .page{display:none}.page.active{display:block}
+  .page.in-l{animation:inL .22s ease-out}.page.in-r{animation:inR .22s ease-out}
+  @keyframes inL{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+  @keyframes inR{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
+  main{min-height:70vh}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+  label{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px}
+  textarea,input[type=text],input[type=password],select{
+    width:100%;background:var(--card2);color:var(--text);border:1px solid var(--line);
+    border-radius:12px;padding:12px;font-size:16px;font-family:inherit;outline:none}
+  textarea{min-height:120px;resize:vertical;line-height:1.5}
+  textarea:focus,input:focus,select:focus{border-color:var(--accent)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  button{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:inherit;
+    border:0;border-radius:12px;padding:11px 14px;font-size:14.5px;font-weight:600;
+    background:var(--card2);color:var(--text);border:1px solid var(--line);cursor:pointer}
+  svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  button.icon{padding:11px 12px}
+  .tools{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px}
+  .tools button{padding:10px 6px;font-size:13.5px;gap:5px}
+  .tools button.icon{padding:10px 11px}
+  button:active{transform:scale(.97)}
+  button.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#1a1426;border:0;flex:1}
+  button:disabled{opacity:.5}
+  .out{white-space:pre-wrap;line-height:1.6;min-height:60px;background:var(--card2);
+    border-radius:12px;padding:12px;border:1px solid var(--line)}
+  .out .empty{color:var(--muted);font-style:italic}
+  .q{color:var(--dialog)}
+  .a{color:var(--action);font-style:italic}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chip{background:var(--card2);border:1px solid var(--accent);color:var(--action);
+    border-radius:999px;padding:8px 12px;font-size:14px;font-weight:500;font-style:italic;text-align:left;justify-content:flex-start}
+  .hint{font-size:13px;color:var(--muted);margin:8px 0 0;line-height:1.45}
+  .hint a{color:var(--accent)}
+  .ctx{font-size:13px;color:var(--muted);max-height:70px;overflow:hidden;
+    border-left:3px solid var(--accent);padding-left:8px;margin-bottom:10px}
+  .tabbar{position:fixed;z-index:2147483647;left:0;right:0;bottom:0;display:flex;background:#1c1828;
+    border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+  .tabbar button{flex:1;border:0;border-radius:0;background:none;color:var(--muted);
+    padding:10px 4px 12px;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .tabbar button svg.i{width:22px;height:22px}
+  .tabbar button{font-weight:600;letter-spacing:.2px}
+  .tabbar button.active{color:var(--accent)}
+  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#000c;
+    color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
+  .toast.show{opacity:1}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid #1a142655;border-top-color:#1a1426;
+    border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .legend{font-size:12px;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>RP <span>Translator</span></h1>
+  <div class="status"><span class="dot" id="dot"></span><span id="statusText">Not connected</span></div>
+</header>
+
+<main>
+  <!-- ===== TAB 1: Terjemah chat karakter (EN -> ID) ===== -->
+  <section class="page active" id="p-read">
+    <div class="card">
+      <label>Paste character message (English)</label>
+      <textarea id="inEn" placeholder='*She smiles softly* "Hey, you made it."'></textarea>
+      <div class="row">
+        <button id="btnPaste"><i data-i="paste"></i>Paste</button>
+        <button id="btnClearEn" class="icon" aria-label="Clear"><i data-i="x"></i></button>
+        <button class="primary" id="btnToId">Translate to Indonesian<i data-i="arrow"></i></button>
+      </div>
+    </div>
+    <div class="card">
+      <label>Result (Indonesian)</label>
+      <div class="out" id="outId"><span class="empty">Translation will appear here.</span></div>
+      <div class="legend"><span class="q">"dialog"</span> · <span class="a">*action*</span></div>
+      <div class="row">
+        <button id="btnCopyId"><i data-i="copy"></i>Copy</button>
+        <button id="btnGoReply" style="flex:1"><i data-i="reply"></i>Reply to this</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== TAB 2: Balas (ID -> EN) ===== -->
+  <section class="page" id="p-reply">
+    <div class="card">
+      <div class="ctx" id="ctxBox">Context: no character message yet. Translate one in the Read tab first (optional).</div>
+      <label>Write your reply (Indonesian)</label>
+      <textarea id="inId" placeholder='*tersenyum malu* "Iya, aku datang kok."'></textarea>
+      <div class="row tools">
+        <button id="btnAddDialog"><i data-i="quote"></i>Dialogue</button>
+        <button id="btnAddAction"><i data-i="star"></i>Action</button>
+        <button id="btnSuggest"><i data-i="sparkle"></i>Suggest</button>
+        <button id="btnClearId" class="icon" aria-label="Clear"><i data-i="x"></i></button>
+      </div>
+      <div class="chips" id="chips"></div>
+      <p class="hint" id="chipHint" style="display:none">Tap a suggestion to add it to your reply.</p>
+    </div>
+    <div class="card">
+      <button class="primary" id="btnToEn" style="width:100%">Translate to English<i data-i="arrow"></i></button>
+      <div class="out" id="outEn" style="margin-top:12px"><span class="empty">English reply will appear here.</span></div>
+      <div class="row"><button class="primary" id="btnCopyEn"><i data-i="copy"></i>Copy reply</button></div>
+    </div>
+  </section>
+
+  <!-- ===== TAB 3: Pengaturan ===== -->
+  <section class="page" id="p-set">
+    <div class="card">
+      <label>Gemini API Key</label>
+      <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off">
+      <p class="hint">
+        1. Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> and sign in with your Google account.<br>
+        2. Tap <b>Create API key</b>, copy it, and paste it here.<br>
+        The key is stored only on this phone.
+      </p>
+      <div class="row">
+        <button id="btnShowKey" class="icon" aria-label="Show key"><i data-i="eye"></i></button>
+        <button class="primary" id="btnSaveKey">Save &amp; Test</button>
+      </div>
+    </div>
+    <div class="card">
+      <label>Model</label>
+      <select id="model"></select>
+      <div class="row"><button id="btnLoadModels" style="flex:1"><i data-i="refresh"></i>Load model list from Google</button></div>
+      <label style="margin-top:14px">Indonesian style</label>
+      <select id="tone">
+        <option value="santai">Casual</option>
+        <option value="gaul">Slang</option>
+        <option value="formal">Formal</option>
+      </select>
+    </div>
+    <div class="card">
+      <button id="btnLogout" style="width:100%;color:var(--danger)"><i data-i="trash"></i>Remove API key from this phone</button>
+    </div>
+  </section>
+</main>
+
+<div class="tabbar" id="tabbar" role="tablist">
+  <button class="active" data-p="p-read"><i data-i="book"></i>Read</button>
+  <button data-p="p-reply"><i data-i="chat"></i>Reply</button>
+  <button data-p="p-set"><i data-i="sliders"></i>Settings</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const ICONS = {
+  book:'<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>',
+  chat:'<path d="M21 12a8.5 8.5 0 0 1-12.3 7.6L3 21l1.4-5.4A8.5 8.5 0 1 1 21 12z"/>',
+  sliders:'<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+  paste:'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  copy:'<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  reply:'<path d="M9 17 4 12l5-5"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>',
+  arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  quote:'<path d="M7 7h3v3c0 3-1.5 5-3.5 6M15 7h3v3c0 3-1.5 5-3.5 6"/>',
+  star:'<path d="M12 4v16M5.1 8l13.8 8M18.9 8 5.1 16"/>',
+  sparkle:'<path d="M12 3l1.8 4.9L19 10l-5.2 2L12 17l-1.8-5L5 10l5.2-2.1z"/><path d="M19 15v4M17 17h4"/>',
+  eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  refresh:'<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>',
+  trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"/>'
+};
+document.querySelectorAll('i[data-i]').forEach(el=>{
+  el.outerHTML = `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONS[el.dataset.i]||''}</svg>`;
+});
+const store = {
+  get(k, d=''){ try{ return localStorage.getItem(k) ?? d }catch(e){ return d } },
+  set(k, v){ try{ localStorage.setItem(k, v) }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k) }catch(e){} }
+};
+const DEFAULT_MODELS = ['gemini-2.5-flash','gemini-2.5-flash-lite','gemini-2.5-pro'];
+
+/* ---------- UI helpers ---------- */
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200); }
+function esc(s){ return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function render(el, text){
+  if(!text){ el.innerHTML='<span class="empty">—</span>'; return; }
+  el.innerHTML = esc(text).replace(/(\*\*?[^*\n]+?\*\*?)|("[^"\n]+?"|“[^”\n]+?”)/g,
+    (m, act, dlg) => act ? `<span class="a">${m}</span>` : `<span class="q">${m}</span>`);
+  el.dataset.raw = text;
+}
+function busy(btn, on, label){
+  if(on){ btn._t=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span>'+(label||'Working...'); }
+  else { btn.disabled=false; btn.innerHTML=btn._t; }
+}
+async function copy(text){
+  try{ await navigator.clipboard.writeText(text); toast('Copied ✓'); }
+  catch(e){ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); ta.remove(); toast('Copied ✓'); }
+}
+function setStatus(){
+  const ok = !!store.get('apiKey');
+  $('dot').classList.toggle('on', ok);
+  $('statusText').textContent = ok ? store.get('model', DEFAULT_MODELS[0]) : 'Not connected';
+}
+function showPage(id, dir){
+  document.querySelectorAll('.page').forEach(p=>{ p.classList.toggle('active', p.id===id);
+    p.classList.remove('in-l','in-r'); if(p.id===id && dir){ void p.offsetWidth; p.classList.add('in-'+dir); } });
+  document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('active', b.dataset.p===id));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.tabbar button').forEach(b=>b.onclick=()=>showPage(b.dataset.p));
+/* swipe left/right to change tab */
+const PAGES=['p-read','p-reply','p-set'];
+let sx=null, sy=0;
+document.querySelector('main').addEventListener('touchstart',e=>{
+  if(e.target.closest('textarea,input,select,.chips')){ sx=null; return; }
+  sx=e.touches[0].clientX; sy=e.touches[0].clientY;
+},{passive:true});
+document.querySelector('main').addEventListener('touchend',e=>{
+  if(sx===null) return;
+  const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy; sx=null;
+  if(Math.abs(dx)<70 || Math.abs(dx)<Math.abs(dy)*1.5) return;
+  const cur=PAGES.indexOf(document.querySelector('.page.active').id);
+  const next=cur+(dx<0?1:-1);
+  if(next>=0 && next<PAGES.length) showPage(PAGES[next], dx<0?'l':'r');
+},{passive:true});
+
+/* ---------- Gemini ---------- */
+async function gemini(system, user, json=false){
+  const key = store.get('apiKey');
+  if(!key){ showPage('p-set'); throw new Error('Enter your API key in Settings first.'); }
+  const model = store.get('model', DEFAULT_MODELS[0]);
+  const body = {
+    systemInstruction:{ parts:[{text:system}] },
+    contents:[{ role:'user', parts:[{text:user}] }],
+    generationConfig:{ temperature: json ? 0.9 : 0.4 },
+    safetySettings:['HARM_CATEGORY_HARASSMENT','HARM_CATEGORY_HATE_SPEECH',
+      'HARM_CATEGORY_SEXUALLY_EXPLICIT','HARM_CATEGORY_DANGEROUS_CONTENT']
+      .map(category=>({category, threshold:'BLOCK_ONLY_HIGH'}))
+  };
+  if(json) body.generationConfig.responseMimeType='application/json';
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
+    method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':key}, body:JSON.stringify(body)
+  });
+  const d = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(d.error?.message || ('HTTP '+r.status));
+  if(d.promptFeedback?.blockReason) throw new Error('Blocked by Gemini filter ('+d.promptFeedback.blockReason+').');
+  const c = d.candidates?.[0];
+  const text = (c?.content?.parts||[]).filter(p=>!p.thought).map(p=>p.text||'').join('').trim();
+  if(!text) throw new Error(c?.finishReason==='SAFETY' ? 'Blocked by Gemini safety filter.' : 'No response from Gemini.');
+  return text;
+}
+const TONE = {
+  santai:'casual, natural everyday Indonesian (aku/kamu)',
+  gaul:'Jakarta slang Indonesian (gue/lo), relaxed',
+  formal:'standard, polite Indonesian (Bahasa baku)'
+};
+const FORMAT_RULES = `FORMAT RULES (very important):
+- Text inside *asterisks* is ACTION/NARRATION: translate it but keep the asterisks.
+- Text inside "double quotes" is DIALOGUE: translate it but keep the double quotes.
+- Keep line breaks, paragraph order, emoji, names, and OOC brackets exactly as they are.
+- Do not add, remove, censor, summarize, or explain anything.
+- Output ONLY the translated text.`;
+
+/* ---------- Tab 1: EN -> ID ---------- */
+$('btnPaste').onclick = async ()=>{
+  try{ $('inEn').value = await navigator.clipboard.readText(); }
+  catch(e){ toast('Long-press the text box and choose Paste'); }
+};
+$('btnClearEn').onclick = ()=>{ $('inEn').value=''; };
+$('btnToId').onclick = async ()=>{
+  const src = $('inEn').value.trim(); if(!src) return toast('Paste a message first');
+  const b=$('btnToId'); busy(b,true,'Translating...');
+  try{
+    const out = await gemini(
+      `You translate AI companion roleplay chat messages from English into ${TONE[store.get('tone','santai')]}. Make it sound natural and expressive like a novel, not stiff machine translation.\n${FORMAT_RULES}`, src);
+    render($('outId'), out);
+    store.set('ctxEn', src); store.set('ctxId', out); updateCtx();
+  }catch(e){ toast(e.message); }
+  busy(b,false);
+};
+$('btnCopyId').onclick = ()=>{ const t=$('outId').dataset.raw; t ? copy(t) : toast('Nothing to copy yet'); };
+$('btnGoReply').onclick = ()=>{ showPage('p-reply'); $('inId').focus(); };
+
+/* ---------- Tab 2: ID -> EN ---------- */
+function updateCtx(){
+  const c = store.get('ctxId');
+  $('ctxBox').textContent = c ? 'Replying to: ' + c : 'Context: no character message yet. Translate one in the Read tab first (optional).';
+}
+function insertAtCursor(txt){
+  const ta=$('inId'); const s=ta.selectionStart ?? ta.value.length, e=ta.selectionEnd ?? s;
+  let before=ta.value.slice(0,s), after=ta.value.slice(e);
+  if(before && !/\s$/.test(before)) txt=' '+txt;
+  if(after && !/^\s/.test(after)) txt=txt+' ';
+  ta.value=before+txt+after; ta.focus();
+  return before.length+txt.length;
+}
+function wrapInsert(open, close){
+  const ta=$('inId'); const s=ta.selectionStart, e=ta.selectionEnd;
+  if(s!==e){ ta.setRangeText(open+ta.value.slice(s,e)+close, s, e, 'end'); ta.focus(); return; }
+  const before=ta.value.slice(0,s), after=ta.value.slice(s);
+  const pre = before && !/\s$/.test(before) ? ' ' : '';
+  ta.value = before+pre+open+close+after;
+  const caret = before.length+pre.length+open.length;
+  ta.focus(); ta.setSelectionRange(caret, caret);
+}
+$('btnAddDialog').onclick = ()=>wrapInsert('"','"');
+$('btnAddAction').onclick = ()=>wrapInsert('*','*');
+$('btnClearId').onclick = ()=>{ $('inId').value=''; $('chips').innerHTML=''; $('chipHint').style.display='none'; };
+
+$('btnSuggest').onclick = async ()=>{
+  const b=$('btnSuggest'); busy(b,true,'Thinking...');
+  try{
+    const ctx = store.get('ctxEn');
+    const draft = $('inId').value.trim();
+    const raw = await gemini(
+      `You help a user write roleplay replies. Suggest 4 short, varied ACTIONS (body language, gestures, expressions, movements) the user's character could do in their reply. Write them in ${TONE[store.get('tone','santai')]}, 2-8 words each, without asterisks, written as present-tense actions without a subject (e.g. "tersenyum kecil sambil menunduk"). Fit the mood of the scene. Return a JSON array of 4 strings only.`,
+      `Character's last message:\n${ctx || '(none)'}\n\nUser's draft reply (Indonesian):\n${draft || '(empty)'}`, true);
+    let list; try{ list = JSON.parse(raw); }catch(e){ list = raw.split('\n').map(s=>s.replace(/^[\s\-\d.*"]+|["*,\]]+$/g,'')).filter(Boolean); }
+    const box=$('chips'); box.innerHTML='';
+    list.slice(0,6).forEach(s=>{
+      s = String(s).replace(/^\*+|\*+$/g,'').trim(); if(!s) return;
+      const c=document.createElement('button'); c.className='chip'; c.textContent='*'+s+'*';
+      c.onclick=()=>{ insertAtCursor('*'+s+'*'); c.remove(); };
+      box.appendChild(c);
+    });
+    $('chipHint').style.display = box.children.length ? 'block':'none';
+  }catch(e){ toast(e.message); }
+  busy(b,false);
+};
+
+$('btnToEn').onclick = async ()=>{
+  const src=$('inId').value.trim(); if(!src) return toast('Write a reply first');
+  const b=$('btnToEn'); busy(b,true,'Translating...');
+  try{
+    const ctx = store.get('ctxEn');
+    const out = await gemini(
+      `You translate the user's roleplay reply from Indonesian into natural, fluent, immersive English that fits a roleplay chat. Keep the user's meaning, tone and point of view (first person stays first person). Indonesian slang should become natural casual English.\n${FORMAT_RULES}`,
+      (ctx ? `(Context only, do NOT translate this) Character's last message:\n${ctx}\n\n` : '') + `Translate this reply:\n${src}`);
+    render($('outEn'), out);
+  }catch(e){ toast(e.message); }
+  busy(b,false);
+};
+$('btnCopyEn').onclick = ()=>{ const t=$('outEn').dataset.raw; t ? copy(t) : toast('Nothing to copy yet'); };
+
+/* ---------- Settings ---------- */
+function fillModels(list){
+  const sel=$('model'), cur=store.get('model', DEFAULT_MODELS[0]);
+  if(!list.includes(cur)) list=[cur,...list];
+  sel.innerHTML = list.map(m=>`<option ${m===cur?'selected':''}>${esc(m)}</option>`).join('');
+}
+$('model').onchange = e=>{ store.set('model', e.target.value); setStatus(); };
+$('tone').value = store.get('tone','santai');
+$('tone').onchange = e=>store.set('tone', e.target.value);
+$('btnShowKey').onclick = ()=>{ const k=$('apiKey'); k.type = k.type==='password'?'text':'password'; };
+$('btnSaveKey').onclick = async ()=>{
+  const k=$('apiKey').value.trim(); if(!k) return toast('Paste your API key first');
+  store.set('apiKey', k); setStatus();
+  const b=$('btnSaveKey'); busy(b,true,'Testing...');
+  try{ await gemini('Reply with exactly: OK','ping'); toast('Connected to Gemini ✓'); await loadModels(true); }
+  catch(e){ toast('Failed: '+e.message); }
+  busy(b,false);
+};
+async function loadModels(silent){
+  const key=store.get('apiKey'); if(!key) return silent||toast('Enter your API key first');
+  try{
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200',{headers:{'x-goog-api-key':key}});
+    const d = await r.json(); if(!r.ok) throw new Error(d.error?.message||r.status);
+    const list = (d.models||[])
+      .filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent') && /gemini/i.test(m.name)
+        && !/embedding|image|tts|audio|live|vision/i.test(m.name))
+      .map(m=>m.name.replace('models/','')).sort().reverse();
+    if(list.length){ fillModels(list); if(!silent) toast(list.length+' models loaded'); }
+  }catch(e){ if(!silent) toast('Failed to load: '+e.message); }
+}
+$('btnLoadModels').onclick = ()=>loadModels(false);
+$('btnLogout').onclick = ()=>{ store.del('apiKey'); $('apiKey').value=''; setStatus(); toast('API key removed'); };
+
+/* ---------- Init ---------- */
+$('apiKey').value = store.get('apiKey');
+fillModels(DEFAULT_MODELS.slice());
+setStatus(); updateCtx();
+if(store.get('ctxId')) render($('outId'), store.get('ctxId'));
+if(!store.get('apiKey')) showPage('p-set');
+if('serviceWorker' in navigator){ navigator.serviceWorker.register("/sw.js").catch(()=>{}); }
+</script>
+</body>
+</html>
